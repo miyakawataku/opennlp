@@ -123,11 +123,42 @@ public class NameFinderME implements TokenNameFinder {
    */
   public Span[] find(String[] tokens, String[][] additionalContext) {
 
+    // XXX
+    // AdditionalContextFeatureGeneratorにcontextを突っ込んでる
+    // contextGenerator:NameContextGenerator 
+
     additionalContextFeatureGenerator.setCurrentContext(additionalContext);
+
+    // XXX
+    // model = BeamSearch<String>
+
+    // XXX
+    // contextGenerator : DefaultNameContextGenerator(new CachedFeatureGenerator(
+    //    new WindowFeatureGenerator(new TokenFeatureGenerator(), 2, 2),
+    //    new WindowFeatureGenerator(new TokenClassFeatureGenerator(true), 2, 2),
+    //    new OutcomePriorFeatureGenerator(),
+    //    new PreviousMapFeatureGenerator(),
+    //    new BigramNameFeatureGenerator(),
+    //    new SentenceFeatureGenerator(true, false)))
+    // cf. TokenNameFinderFactory#createContextGenerator()
+
+    // XXX
+    // additionalContext = EMPTY = new String[0][0]
+
+    // XXX
+    // sequenceValidator = NameFinderSequenceValidator
 
     bestSequence = model.bestSequence(tokens, additionalContext, contextGenerator, sequenceValidator);
 
+    // XXX
+    // -> model.bestSequences(1, tokens, additionalContext, -100000, contextGenerator, sequenceValidator)[0]
+
     List<String> c = bestSequence.getOutcomes();
+
+    // XXX
+    // c = ["person-start", "person-cont", "other", "person-start", "person-cont", "other", "other", "other", "other"]
+    // person-start = この位置で名前が始まってる。 person-cont = 名前の継続
+    // ここまででdetectionの仕事は終わっている
 
     contextGenerator.updateAdaptiveData(tokens, c.toArray(new String[c.size()]));
     Span[] spans = seqCodec.decode(c);

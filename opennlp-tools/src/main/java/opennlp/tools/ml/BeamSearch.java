@@ -86,6 +86,18 @@ public class BeamSearch<T> implements SequenceClassificationModel<T> {
       Object[] additionalContext, double minSequenceScore,
       BeamSearchContextGenerator<T> cg, SequenceValidator<T> validator) {
 
+    // XXX
+    // numSequences = 1
+    // sequence = ["John", "Lennon", "and", "Paul", ...]
+    // additionalContext = EMPTY
+    // minSequenceScore = -100000
+    // cg = DefaultNameContextGenerator
+    // validator = NameFinderSequenceValidator
+
+    // XXX
+    // Sequence = (List<String>, score)のタプル. scoreでComparable
+    // size = k = 3.
+
     Queue<Sequence> prev = new PriorityQueue<>(size);
     Queue<Sequence> next = new PriorityQueue<>(size);
     Queue<Sequence> tmp;
@@ -95,18 +107,36 @@ public class BeamSearch<T> implements SequenceClassificationModel<T> {
       additionalContext = EMPTY_ADDITIONAL_CONTEXT;
     }
 
+    // XXX for (i, sequence[i] = token) in sequence
     for (int i = 0; i < sequence.length; i++) {
+      // XXX
+      // prev : 一個前の単語までの候補となるSequence (outcomeの列) の優先度付きキュー (優先度 = Sequenceのスコア)
+      // prevの各要素にoutcomeの候補 (other, person-start, person-cont) を追加してみて、
+      // 追加した状態での各Sequenceスコアを計算する
+      // スコアの高いSequenceがnextに突っ込まれて、次のループのprevになる
+
       int sz = Math.min(size, prev.size());
 
       for (int sc = 0; prev.size() > 0 && sc < sz; sc++) {
         Sequence top = prev.remove();
+
         List<String> tmpOutcomes = top.getOutcomes();
         String[] outcomes = tmpOutcomes.toArray(new String[tmpOutcomes.size()]);
+        // XXX contexts = GISModelに食わせるfeature
         String[] contexts = cg.getContext(i, sequence, outcomes, additionalContext);
+        // XXX outcome (other, start, cont) それぞれのスコア
         double[] scores;
         if (contextsCache != null) {
+          // XXX
+          // model.evalはprobsを変更しているので、単にcontextsを引数として
+          // キャッシュするのはまずいような……
           scores = contextsCache.computeIfAbsent(contexts, c -> model.eval(c, probs));
+          // XXX evalは結局probsを返してるので、
+          // ここでprobs = scoresしなきゃいけない気がする
         } else {
+          // XXX model = GISModel()
+          // A maximum entropy model which has been trained using the Generalized
+          // Iterative Scaling procedure (implemented in GIS.java).
           scores = model.eval(contexts, probs);
         }
 
@@ -119,9 +149,12 @@ public class BeamSearch<T> implements SequenceClassificationModel<T> {
 
         for (int p = 0; p < scores.length; p++) {
           if (scores[p] >= min) {
+            // XXX out = one of ["other", "person-start", "person-cont"]
             String out = model.getOutcome(p);
+            // XXX たとえばotherの後にperson-contが来たらおかしいのでこれは弾く
             if (validator.validSequence(i, sequence, outcomes, out)) {
               Sequence ns = new Sequence(top, out, scores[p]);
+              // XXX ns.getScore() = トークンごとのscoreについての、log(score)の和
               if (ns.getScore() > minSequenceScore) {
                 next.add(ns);
               }
