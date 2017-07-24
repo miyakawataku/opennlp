@@ -29,6 +29,9 @@ import opennlp.tools.util.Cache;
 import opennlp.tools.util.Sequence;
 import opennlp.tools.util.SequenceValidator;
 
+// XXX Beam Searchの説明
+// https://gist.github.com/karino2/5b90ee1af063e02da5d5313759f3a9b7
+
 /**
  * Performs k-best search over sequence.  This is based on the description in
  * Ratnaparkhi (1998), PhD diss, Univ. of Pennsylvania.
